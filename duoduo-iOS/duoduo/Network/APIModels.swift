@@ -168,6 +168,19 @@ struct APIResourceResponse: Decodable, Identifiable {
     let updated_at: String
 }
 
+// MARK: - Resource Card (Browse & Liked)
+
+struct APIResourceCardResponse: Decodable, Identifiable {
+    let id: UUID
+    let title: String
+    let content: String
+    let tags: [String]?
+    let source: String?
+    let url: String?
+    let created_at: String
+    let updated_at: String
+}
+
 // MARK: - Resource (RAG Search)
 
 struct APIResourceItem: Decodable {
@@ -178,11 +191,28 @@ struct APIResourceItem: Decodable {
     let title: String
 }
 
+// MARK: - Resource Interactions
+
+struct APISwipeRequest: Encodable {
+    let direction: String  // "left" or "right"
+}
+
+struct APIApplicationStatusResponse: Decodable {
+    let resource_id: UUID
+    let status: String  // "applying", "accepted", "rejected", etc.
+}
+
 // MARK: - Chat
 
-struct APIChatMessage: Codable {
-    let role: String    // "user" or "model"
+struct ChatRequest: Encodable {
     let content: String
+}
+
+struct APIChatMessage: Codable {
+    let id: UUID?
+    let sender_type: String    // "user" or "model"
+    let message: String
+    let created_at: String?
 }
 
 struct APIChatRequest: Encodable {

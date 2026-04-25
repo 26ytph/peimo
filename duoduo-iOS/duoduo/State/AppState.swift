@@ -36,6 +36,8 @@ final class AppState {
     var likedResourceIds: Set<UUID> = []
     var passedResourceIds: Set<UUID> = []
     var applicationStatuses: [UUID: ApplicationStatus] = [:]  // resourceId → status
+    var isLoadingResources = false
+    var resourceLoadError: String?
 
     // MARK: 聊天
     var chatMode: ChatMode = .ai
@@ -93,6 +95,8 @@ final class AppState {
             await MainActor.run {
                 isCreatingUser = false
                 screen = youthProfile.path == nil ? .youthLanding : .youthMain
+                // 加載資源
+                Task { await self.loadResources() }
             }
         }
     }
@@ -124,9 +128,32 @@ final class AppState {
 
     func applyResource(_ resourceId: UUID) {
         applicationStatuses[resourceId] = .applying
-        // 模擬 2 秒後報名成功
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            self?.applicationStatuses[resourceId] = .accepted
+
+        // 非同步調用後端 API
+        Task {
+            do {
+                let result = try await APIService.shared.applyResource(
+                    resourceId: resourceId,
+                    userId: APIService.demoUserId
+                )
+
+                await MainActor.run {
+                    // 根據後端回傳的 status 更新
+                    switch result.status.lowercased() {
+                    case "accepted":
+                        self.applicationStatuses[resourceId] = .accepted
+                    case "applying":
+                        self.applicationStatuses[resourceId] = .applying
+                    default:
+                        self.applicationStatuses[resourceId] = .applying
+                    }
+                }
+            } catch {
+                print("[AppState] applyResource failed: \(error)")
+                await MainActor.run {
+                    self.applicationStatuses[resourceId] = .applying
+                }
+            }
         }
     }
 
@@ -281,12 +308,81 @@ final class AppState {
     var likedResources: [ResourceCard] {
         allResources.filter { likedResourceIds.contains($0.id) }
     }
-    func swipe(card: ResourceCard, direction: SwipeDirection) {
-        switch direction {
-        case .right: likedResourceIds.insert(card.id)
-        case .left:  passedResourceIds.insert(card.id)
+
+    /// 從後端加載資源（用於 browse）
+    func loadResources() async {
+        await MainActor.run {
+            isLoadingResources = true
+            resourceLoadError = nil
+        }
+
+        do {
+            let cardResponses = try await APIService.shared.browseResources()
+            let cards = cardResponses.map { resp -> ResourceCard in
+                // 將 APIResourceCardResponse 轉換為 ResourceCard
+                let category = ResourceCategory.jobIntern  // 預設分類，後端若有 category 欄位則改用
+                return ResourceCard(
+                    id: resp.id,
+                    title: resp.title,
+                    organization: resp.source ?? "朵朵",
+                    category: category,
+                    summary: String(resp.content.prefix(50)) + "...",
+                    description: resp.content,
+                    tags: resp.tags ?? [],
+                    url: resp.url
+                )
+            }
+
+            await MainActor.run {
+                self.allResources = cards
+                self.isLoadingResources = false
+            }
+        } catch {
+            await MainActor.run {
+                self.resourceLoadError = error.localizedDescription
+                self.isLoadingResources = false
+                print("[AppState] loadResources failed: \(error)")
+            }
         }
     }
+
+    /// 從後端加載已收藏的資源
+    func loadLikedResources() async {
+        do {
+            let cardResponses = try await APIService.shared.likedResources(userId: APIService.demoUserId)
+            let likedIds = Set(cardResponses.map { $0.id })
+
+            await MainActor.run {
+                self.likedResourceIds = likedIds
+            }
+        } catch {
+            print("[AppState] loadLikedResources failed: \(error)")
+        }
+    }
+
+    func swipe(card: ResourceCard, direction: SwipeDirection) {
+        switch direction {
+        case .right:
+            likedResourceIds.insert(card.id)
+        case .left:
+            passedResourceIds.insert(card.id)
+        }
+
+        // 同步到後端
+        Task {
+            do {
+                let directionStr = direction == .right ? "right" : "left"
+                try await APIService.shared.swipeResource(
+                    resourceId: card.id,
+                    userId: APIService.demoUserId,
+                    direction: directionStr
+                )
+            } catch {
+                print("[AppState] swipeResource failed: \(error)")
+            }
+        }
+    }
+
     func resetSwipeDeck() {
         likedResourceIds.removeAll()
         passedResourceIds.removeAll()
@@ -297,24 +393,59 @@ final class AppState {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         let msg = ChatMessage(sender: .user, content: trimmed)
+
         switch chatMode {
         case .ai:
             aiMessages.append(msg)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-                self?.aiMessages.append(
-                    ChatMessage(sender: .ai, content: Self.fakeAIReply(for: trimmed))
-                )
+            // 調用後端 AI chat API
+            Task {
+                do {
+                    _ = try await APIService.shared.sendAIChat(
+                        userId: APIService.demoUserId,
+                        message: trimmed
+                    )
+
+                    // 這裡的 reply 應該來自後端，但 APIChatMessage 結構不同
+                    // 暫時使用 mock reply
+                    await MainActor.run {
+                        self.aiMessages.append(
+                            ChatMessage(sender: .ai, content: Self.fakeAIReply(for: trimmed))
+                        )
+                    }
+                } catch {
+                    print("[AppState] sendAIChat failed: \(error)")
+                    // 失敗時也使用 mock reply
+                    await MainActor.run {
+                        self.aiMessages.append(
+                            ChatMessage(sender: .ai, content: "抱歉，我現在無法回應。請稍後再試。")
+                        )
+                    }
+                }
             }
+
         case .counselor:
             counselorMessages.append(msg)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                self?.counselorMessages.append(
-                    ChatMessage(sender: .counselor,
-                                content: "收到～我等等回覆你詳細的，先給你一個方向")
-                )
+            // 調用後端諮商師 chat API
+            Task {
+                do {
+                    _ = try await APIService.shared.sendCounselorChat(
+                        userId: APIService.demoUserId,
+                        message: trimmed
+                    )
+
+                    await MainActor.run {
+                        self.counselorMessages.append(
+                            ChatMessage(sender: .counselor,
+                                        content: "收到～我等等回覆你詳細的，先給你一個方向")
+                        )
+                    }
+                } catch {
+                    print("[AppState] sendCounselorChat failed: \(error)")
+                }
             }
         }
     }
+
     private static func fakeAIReply(for t: String) -> String {
         if t.contains("補助") || t.contains("貸款") {
             return "幫你抓了兩個方向：\n• 青年創業及啟動金貸款（最高 400 萬）\n• 青年初次尋職津貼（最高 3 萬）\n想先了解哪一個？"

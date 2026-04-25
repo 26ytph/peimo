@@ -13,6 +13,10 @@ struct ResourceCardView: View {
     /// 外層已提供背景時設為 true，避免雙層白底
     var bare: Bool = false
 
+    private var topTags: [String] {
+        Array(card.tags.prefix(2))
+    }
+
     var body: some View {
         if compact {
             compactBody
@@ -24,17 +28,29 @@ struct ResourceCardView: View {
     // MARK: - 滑卡（Full）
     private var fullBody: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // 類別膠囊 + 主辦
+            // 左上角 tag（取後端前兩個）+ 主辦
             HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: card.category.icon)
-                        .font(.caption2.bold())
-                    Text(card.category.rawValue)
-                        .font(.caption2.bold())
+                if topTags.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: card.category.icon)
+                            .font(.caption2.bold())
+                        Text(card.category.rawValue)
+                            .font(.caption2.bold())
+                    }
+                    .foregroundStyle(card.category.solidColor)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(card.category.tintColor))
+                } else {
+                    HStack(spacing: 8) {
+                        ForEach(Array(topTags.enumerated()), id: \.offset) { idx, tag in
+                            Text("#\(tag)")
+                                .font(.caption2.bold())
+                                .foregroundStyle(topTagTextColor(at: idx))
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(Capsule().fill(topTagBackgroundColor(at: idx)))
+                        }
+                    }
                 }
-                .foregroundStyle(card.category.solidColor)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(Capsule().fill(card.category.tintColor))
 
                 Spacer()
 
@@ -100,6 +116,16 @@ struct ResourceCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: Color.black.opacity(0.06), radius: 14, y: 6)
         .shadow(color: CloudTheme.softShadow, radius: 4, y: 2)
+    }
+
+    private func topTagTextColor(at index: Int) -> Color {
+        index == 0 ? Color(red: 0.10, green: 0.40, blue: 0.72)
+                   : Color(red: 0.58, green: 0.22, blue: 0.10)
+    }
+
+    private func topTagBackgroundColor(at index: Int) -> Color {
+        index == 0 ? Color(red: 0.86, green: 0.93, blue: 1.00)
+                   : Color(red: 1.00, green: 0.92, blue: 0.84)
     }
 
     private func metaPill(icon: String, text: String) -> some View {

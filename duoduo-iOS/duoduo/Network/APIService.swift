@@ -169,11 +169,63 @@ actor APIService {
                           query: [("query", query), ("n", "\(n)")])
     }
 
-    // MARK: - Chat (AI with RAG)
+    // MARK: - Resources (Browse & Swipe)
 
-    func sendChatMessage(userId: UUID, message: String, history: [APIChatMessage]) async throws -> APIChatResponse {
-        let body = APIChatRequest(user_id: userId, message: message, history: history)
-        return try await request(method: "POST", path: "/chat/message", body: body)
+    func browseResources(tag: String? = nil) async throws -> [APIResourceCardResponse] {
+        var query: [(String, String)] = []
+        if let tag {
+            query.append(("tag", tag))
+        }
+        return try await request(method: "GET", path: "/resources/browse", query: query)
+    }
+
+    func likedResources(userId: UUID) async throws -> [APIResourceCardResponse] {
+        try await request(method: "GET", path: "/resources/liked",
+                          query: [("user_id", userId.uuidString)])
+    }
+
+    func swipeResource(resourceId: UUID, userId: UUID, direction: String) async throws {
+        let body = APISwipeRequest(direction: direction)
+        try await requestVoid(method: "POST",
+                              path: "/resources/\(resourceId)/swipe?user_id=\(userId.uuidString)",
+                              body: body)
+    }
+
+    func applyResource(resourceId: UUID, userId: UUID) async throws -> APIApplicationStatusResponse {
+        try await request(method: "POST",
+                          path: "/resources/\(resourceId)/apply?user_id=\(userId.uuidString)")
+    }
+
+    func confirmResource(resourceId: UUID, userId: UUID) async throws -> APIApplicationStatusResponse {
+        try await request(method: "POST",
+                          path: "/resources/\(resourceId)/confirm?user_id=\(userId.uuidString)")
+    }
+
+    func listApplications(userId: UUID) async throws -> [APIApplicationStatusResponse] {
+        try await request(method: "GET", path: "/resources/applications",
+                          query: [("user_id", userId.uuidString)])
+    }
+
+    // MARK: - Chat (AI & Counselor)
+
+    func getAIChatHistory(userId: UUID) async throws -> [APIChatMessage] {
+        try await request(method: "GET", path: "/chat/ai",
+                          query: [("user_id", userId.uuidString)])
+    }
+
+    func sendAIChat(userId: UUID, message: String) async throws -> APIChatMessage {
+        let body = ChatRequest(content: message)
+        return try await request(method: "POST", path: "/chat/ai?user_id=\(userId.uuidString)", body: body)
+    }
+
+    func getCounselorChatHistory(userId: UUID) async throws -> [APIChatMessage] {
+        try await request(method: "GET", path: "/chat/counselor",
+                          query: [("user_id", userId.uuidString)])
+    }
+
+    func sendCounselorChat(userId: UUID, message: String) async throws -> APIChatMessage {
+        let body = ChatRequest(content: message)
+        return try await request(method: "POST", path: "/chat/counselor?user_id=\(userId.uuidString)", body: body)
     }
 
     // MARK: - Path Generation
