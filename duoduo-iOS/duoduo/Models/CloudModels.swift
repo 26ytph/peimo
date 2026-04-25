@@ -168,6 +168,34 @@ struct CareerPath: Codable {
     var summary: String         // AI 一段式描述
     var stages: [CareerStage]
     var generatedAt: Date
+
+    /// 從 API 回傳的 PathResponse 轉換為本地 CareerPath
+    static func from(api: APIPathResponse, registration: RegistrationDraft, answers: [InterviewAnswer]) -> CareerPath {
+        let stageIcons = ["sparkles", "list.bullet.clipboard.fill", "graduationcap.fill", "paperplane.fill", "lightbulb.fill"]
+        let statusOrder: [CareerStageStatus] = [.done, .current, .upcoming, .upcoming, .upcoming]
+        let baseAge = max(registration.age, 18)
+
+        let stages = api.stages.enumerated().map { (i, s) in
+            CareerStage(
+                index: i,
+                title: s.title,
+                subtitle: s.content.prefix(30) + (s.content.count > 30 ? "…" : ""),
+                description: s.content,
+                ageRange: "\(baseAge + i)~\(baseAge + i + 1) 歲",
+                icon: i < stageIcons.count ? stageIcons[i] : "circle",
+                status: i < statusOrder.count ? statusOrder[i] : .upcoming,
+                tasks: [],
+                recommendedResourceIds: []
+            )
+        }
+
+        return CareerPath(
+            headline: api.dream,
+            summary: stages.map(\.title).joined(separator: " → "),
+            stages: stages,
+            generatedAt: Date()
+        )
+    }
 }
 
 // MARK: - 個人檔案
@@ -181,9 +209,19 @@ struct YouthProfile: Identifiable, Codable {
     var avatarImage: String?         // Assets catalog 圖片名（nil 則顯示姓名首字）
     var bio: String                  // 自我敘述
     var interests: [String]
+    var skills: [String]
     var cvFileName: String?
     var path: CareerPath?            // AI 生成的職涯路徑
     var assignedCounselorId: UUID?
+
+    // 後端 /youth/me 新增欄位
+    var educationLevel: String?      // 學歷等級
+    var department: String?          // 科系（對應後端 department，與 major 區分）
+    var goal: String?                // 職涯目標
+    var achievement: String?         // 成就 / 經歷亮點
+    var setback: String?             // 困境 / 卡住的事
+    var hollandPrimary: String?      // Holland 主型
+    var hollandSecondary: String?    // Holland 副型
 }
 
 // MARK: - 對話

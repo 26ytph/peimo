@@ -31,7 +31,9 @@ struct LoginView: View {
                         .font(.footnote)
                         .foregroundStyle(CloudTheme.textMuted)
 
-                    PrimaryButton(title: "我是青年", systemImage: "person.fill") {
+                    PrimaryButton(title: appState.isCreatingUser ? "準備中…" : "我是青年",
+                                  systemImage: "person.fill",
+                                  enabled: !appState.isCreatingUser) {
                         appState.loginAsYouth()
                     }
                     PrimaryButton(title: "我是諮商師",

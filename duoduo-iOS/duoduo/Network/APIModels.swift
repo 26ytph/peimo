@@ -37,6 +37,121 @@ struct APIUserResponse: Decodable, Identifiable {
     let updated_at: String
 }
 
+// MARK: - Youth Profile
+
+struct APIYouthProfileUpdate: Encodable {
+    var name: String?
+    var age: Int?
+    var school: String?
+    var location: String?
+    var bio: String?
+    var interests: [String]?
+    var skills: [String]?
+    var education_level: String?
+    var department: String?
+    var goal: String?
+    var achievement: String?
+    var setback: String?
+    var holland_primary: String?
+    var holland_secondary: String?
+}
+
+struct APIYouthProfileResponse: Decodable, Identifiable {
+    let id: UUID
+    let user_id: UUID
+    let name: String?
+    let age: Int?
+    let school: String?
+    let major: String?
+    let location: String?
+    let bio: String?
+    let interests: [String]?
+    let skills: [String]?
+    let education_level: String?
+    let department: String?
+    let goal: String?
+    let achievement: String?
+    let setback: String?
+    let holland_primary: String?
+    let holland_secondary: String?
+    let avatar_url: String?
+    let career_path: [String]?
+    let counselor_list: [String]?
+    let created_at: String
+    let updated_at: String
+}
+
+// MARK: - Landing Chat
+
+struct APILandingChatRequest: Encodable {
+    let user_id: UUID
+    var message: String?
+}
+
+struct APILandingChatResponse: Decodable {
+    let completed: Bool
+    let missing_fields: [String]
+    let next_question: String?
+    let extracted_fields: [String: AnyCodableValue]?
+    let generated_bio: String?
+    let profile_data: [String: AnyCodableValue]?
+}
+
+/// 用於解析 JSON 中混合類型的值（string / int / array / null）
+enum AnyCodableValue: Decodable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case array([AnyCodableValue])
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let v = try? container.decode(Int.self) {
+            self = .int(v)
+        } else if let v = try? container.decode(Double.self) {
+            self = .double(v)
+        } else if let v = try? container.decode(Bool.self) {
+            self = .bool(v)
+        } else if let v = try? container.decode(String.self) {
+            self = .string(v)
+        } else if let v = try? container.decode([AnyCodableValue].self) {
+            self = .array(v)
+        } else {
+            self = .null
+        }
+    }
+
+    var stringValue: String? {
+        switch self {
+        case .string(let s): return s
+        case .int(let i): return String(i)
+        case .double(let d): return String(d)
+        case .bool(let b): return String(b)
+        default: return nil
+        }
+    }
+
+    var intValue: Int? {
+        switch self {
+        case .int(let i): return i
+        case .string(let s): return Int(s)
+        default: return nil
+        }
+    }
+
+    var stringArray: [String] {
+        switch self {
+        case .array(let arr): return arr.compactMap(\.stringValue)
+        case .string(let s): return [s]
+        default: return []
+        }
+    }
+}
+
 // MARK: - Resource (Admin CRUD)
 
 struct APIResourceResponse: Decodable, Identifiable {
@@ -89,21 +204,16 @@ struct APIPathRequest: Encodable {
     let background: [String: String]
 }
 
-struct APIPathStep: Decodable {
-    let step: String
-    let resource_type: String
-}
-
-struct APIPathContent: Decodable {
-    let short_term: [APIPathStep]
-    let mid_term: [APIPathStep]
-    let long_term: [APIPathStep]
+struct APIPathStage: Decodable {
+    let title: String
+    let content: String
+    let resources: [String]
 }
 
 struct APIPathResponse: Decodable {
-    let id: UUID
     let user_id: UUID
-    let content: APIPathContent
+    let dream: String
+    let stages: [APIPathStage]
 }
 
 // MARK: - Case Records

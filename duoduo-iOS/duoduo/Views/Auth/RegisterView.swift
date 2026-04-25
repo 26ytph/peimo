@@ -63,9 +63,9 @@ struct RegisterView: View {
                     .padding(22)
                 }
 
-                PrimaryButton(title: "下一步：和朵朵聊聊",
+                PrimaryButton(title: appState.isSyncingRegistration ? "同步中…" : "下一步：和朵朵聊聊",
                               systemImage: "arrow.right",
-                              enabled: canContinue) {
+                              enabled: canContinue && !appState.isSyncingRegistration) {
                     appState.finishRegistration()
                 }
                 .padding(.horizontal, 22)
@@ -154,11 +154,17 @@ struct RegisterView: View {
         }
     }
 
-    /// Demo：假裝上傳一份 CV，並 LLM 自動萃取關鍵字
+    /// Demo：假裝上傳 CV，自動填入固定的使用者資料與萃取關鍵字
     private func mockUploadCV() {
         appState.registration.cvFileName = "我的履歷_2026.pdf"
         analyzingCV = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            // 模擬 CV 解析後自動填入使用者資訊
+            appState.registration.name = "陳雨潔"
+            appState.registration.age = 23
+            appState.registration.school = "國立臺北大學"
+            appState.registration.major = "社會學系"
+            appState.registration.location = "臺北市大安區"
             appState.registration.cvHighlights = ["永續設計", "社群行銷", "簡報設計", "活動企劃"]
             analyzingCV = false
         }

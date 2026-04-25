@@ -15,6 +15,7 @@ enum AppScreen {
     case youthRegister        // 註冊（姓名 / CV）
     case youthInterview       // AI 多輪提問
     case youthAnalyzing       // 分析動畫
+    case youthAnalysisResult  // AI 分析結果，使用者可確認/修改
     case youthMain            // 進入主 App
     case counselorMain
 }
@@ -66,10 +67,34 @@ final class AppState {
     }
 
     // MARK: - 流程動作
-    /// 民眾登入：判斷是否已有 path，決定要不要走完整 onboarding
+    /// 民眾登入：自動建立新 user，進入 onboarding
+    var isCreatingUser = false
+
     func loginAsYouth() {
         role = .youth
-        screen = youthProfile.path == nil ? .youthLanding : .youthMain
+        isCreatingUser = true
+
+        Task {
+            do {
+                let suffix = String(UUID().uuidString.prefix(6))
+                let body = APIUserCreate(
+                    account: "duoduo_\(suffix)",
+                    password: "demo123",
+                    role: "citizen",
+                    name: "朵朵用戶"
+                )
+                let user = try await APIService.shared.createUser(body)
+                APIService.demoUserId = user.id
+                print("[AppState] Created new user: \(user.id)")
+            } catch {
+                print("[AppState] createUser failed: \(error), using existing demoUserId")
+            }
+
+            await MainActor.run {
+                isCreatingUser = false
+                screen = youthProfile.path == nil ? .youthLanding : .youthMain
+            }
+        }
     }
 
     func loginAsCounselor() {
@@ -107,7 +132,9 @@ final class AppState {
 
     func startRegistration() { screen = .youthRegister }
 
-    /// 註冊完成 → 進到 AI 訪談
+    /// 註冊完成 → 同步到後端 → 進到 AI 訪談
+    var isSyncingRegistration = false
+
     func finishRegistration() {
         // 把草稿的姓名等寫進 profile
         youthProfile.name     = registration.name.isEmpty ? youthProfile.name : registration.name
@@ -119,24 +146,128 @@ final class AppState {
         if !registration.cvHighlights.isEmpty {
             youthProfile.interests = registration.cvHighlights
         }
-        screen = .youthInterview
+
+        isSyncingRegistration = true
+        let userId = APIService.demoUserId
+
+        Task {
+            // 1. PATCH /users — 更新 name
+            do {
+                var userBody = APIUserUpdate()
+                userBody.name = youthProfile.name
+                let _ = try await APIService.shared.updateUser(id: userId, body: userBody)
+            } catch {
+                print("[AppState] updateUser failed: \(error)")
+            }
+
+            // 2. PATCH /youth/me — 同步基本資料，讓 /landing/chat 知道已填欄位
+            do {
+                let youthBody = APIYouthProfileUpdate(
+                    name: youthProfile.name,
+                    age: youthProfile.age,
+                    school: youthProfile.school,
+                    location: youthProfile.location,
+                    interests: youthProfile.interests.isEmpty ? nil : youthProfile.interests,
+                    department: youthProfile.major
+                )
+                let _ = try await APIService.shared.updateYouthProfile(userId: userId, body: youthBody)
+            } catch {
+                print("[AppState] updateYouthProfile failed: \(error)")
+            }
+
+            await MainActor.run {
+                isSyncingRegistration = false
+                screen = .youthInterview
+            }
+        }
     }
 
-    /// 訪談完成 → 進到分析動畫，分析完成後進主畫面
+    /// 訪談完成 → 由 AIInterviewView 在 /landing/chat completed 時直接跳轉
+    /// 此方法保留作為 fallback（如果從其他地方呼叫）
     func finishInterview() {
-        screen = .youthAnalyzing
-        // 模擬 LLM 思考 2.4 秒
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) { [weak self] in
-            guard let self else { return }
-            let path = MockData.generatePath(for: self.registration,
-                                             answers: self.interviewAnswers)
-            self.youthProfile.path = path
-            // 把第一句訪談回答放進 bio
-            if let first = self.interviewAnswers.first?.answer, !first.isEmpty {
-                self.youthProfile.bio = first
+        screen = .youthAnalysisResult
+    }
+
+    /// 使用者確認分析結果 → PATCH /youth/me → 分析動畫 → POST /path/generate → 主畫面
+    var isSubmittingProfile = false
+
+    func confirmAnalysisResult() {
+        guard !isSubmittingProfile else { return }
+        isSubmittingProfile = true
+
+        Task {
+            let userId = APIService.demoUserId
+
+            // 1. PATCH /youth/me 更新使用者資料
+            do {
+                let body = APIYouthProfileUpdate(
+                    name: youthProfile.name,
+                    age: youthProfile.age,
+                    school: youthProfile.school,
+                    location: youthProfile.location,
+                    bio: youthProfile.bio,
+                    interests: youthProfile.interests,
+                    skills: youthProfile.skills,
+                    education_level: youthProfile.educationLevel,
+                    department: youthProfile.department ?? youthProfile.major,
+                    goal: youthProfile.goal,
+                    achievement: youthProfile.achievement,
+                    setback: youthProfile.setback,
+                    holland_primary: youthProfile.hollandPrimary,
+                    holland_secondary: youthProfile.hollandSecondary
+                )
+                let _ = try await APIService.shared.updateYouthProfile(userId: userId, body: body)
+            } catch {
+                print("[APIService] updateYouthProfile failed: \(error)")
             }
-            withAnimation(.easeInOut(duration: 0.4)) {
-                self.screen = .youthMain
+
+            // 2. 進到分析動畫
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    screen = .youthAnalyzing
+                }
+            }
+
+            // 3. POST /path/generate 生成職涯路徑
+            do {
+                let dream = youthProfile.goal ?? interviewAnswers.first?.answer ?? ""
+                var background: [String: String] = [
+                    "name": youthProfile.name,
+                    "school": youthProfile.school,
+                    "major": youthProfile.major,
+                    "location": youthProfile.location,
+                ]
+                if !youthProfile.bio.isEmpty { background["bio"] = youthProfile.bio }
+                if let hl = youthProfile.hollandPrimary { background["holland_primary"] = hl }
+                if let hl = youthProfile.hollandSecondary { background["holland_secondary"] = hl }
+                if let achievement = youthProfile.achievement { background["achievement"] = achievement }
+                if let setback = youthProfile.setback { background["setback"] = setback }
+                for (i, ans) in interviewAnswers.enumerated() {
+                    background["interview_q\(i)"] = ans.questionPrompt
+                    background["interview_a\(i)"] = ans.answer
+                }
+
+                let response = try await APIService.shared.generatePath(
+                    userId: userId, dream: dream, background: background
+                )
+                // 將 APIPathResponse 轉換為本地 CareerPath
+                await MainActor.run {
+                    youthProfile.path = CareerPath.from(api: response, registration: registration, answers: interviewAnswers)
+                }
+            } catch {
+                print("[APIService] generatePath failed: \(error)")
+                // fallback: 用本地 mock 生成
+                await MainActor.run {
+                    let path = MockData.generatePath(for: registration, answers: interviewAnswers)
+                    youthProfile.path = path
+                }
+            }
+
+            await MainActor.run {
+                isSubmittingProfile = false
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    screen = .youthMain
+                }
             }
         }
     }

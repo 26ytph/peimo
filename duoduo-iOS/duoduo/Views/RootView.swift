@@ -13,13 +13,14 @@ struct RootView: View {
     var body: some View {
         Group {
             switch appState.screen {
-            case .login:           LoginView()
-            case .youthLanding:    YouthLandingView()
-            case .youthRegister:   RegisterView()
-            case .youthInterview:  AIInterviewView()
-            case .youthAnalyzing:  PathGeneratingView()
-            case .youthMain:       YouthTabView()
-            case .counselorMain:   CounselorTabView()
+            case .login:                LoginView()
+            case .youthLanding:         YouthLandingView()
+            case .youthRegister:        RegisterView()
+            case .youthInterview:       AIInterviewView()
+            case .youthAnalyzing:       PathGeneratingView()
+            case .youthAnalysisResult:  AnalysisResultView()
+            case .youthMain:            YouthTabView()
+            case .counselorMain:        CounselorTabView()
             }
         }
         .animation(.easeInOut(duration: 0.3), value: appState.screen)

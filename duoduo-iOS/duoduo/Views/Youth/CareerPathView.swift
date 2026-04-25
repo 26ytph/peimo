@@ -2,7 +2,7 @@
 //  CareerPathView.swift
 //  duoduo
 //
-//  民眾首頁：AI 生成的職涯階段（垂直時間軸），點擊每個階段可看詳細任務 / 推薦資源。
+//  民眾首頁：AI 生成的職涯階段（垂直時間軸），點擊每個階段可看詳細描述。
 //
 
 import SwiftUI
@@ -182,7 +182,7 @@ struct CareerPathView: View {
             CloudGlyph(size: 80)
             Text("還沒生成職涯路徑").font(.headline)
                 .foregroundStyle(CloudTheme.textPrimary)
-            Text("和朵朵聊聊，我們幫你規劃 5 個成長階段。")
+            Text("和朵朵聊聊，我們幫你規劃專屬的成長階段。")
                 .font(.footnote)
                 .foregroundStyle(CloudTheme.textSecondary)
                 .multilineTextAlignment(.center)

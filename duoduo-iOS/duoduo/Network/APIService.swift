@@ -26,6 +26,9 @@ enum APIError: Error, LocalizedError {
 actor APIService {
     static let shared = APIService()
 
+    /// Demo 用動態 user_id，每次 onboarding 自動建立新 user
+    static var demoUserId: UUID = UUID(uuidString: "38a7d586-3317-4a8a-ba01-595476ad9595")!
+
     private let baseURL = "https://duoduo-backend.zudo.cc"
     private let session: URLSession
     private let decoder: JSONDecoder
@@ -128,6 +131,25 @@ actor APIService {
 
     func updateUser(id: UUID, body: APIUserUpdate) async throws -> APIUserResponse {
         try await request(method: "PATCH", path: "/users/\(id)", body: body)
+    }
+
+    // MARK: - Youth Profile
+
+    func getYouthProfile(userId: UUID) async throws -> APIYouthProfileResponse {
+        try await request(method: "GET", path: "/youth/me",
+                          query: [("user_id", userId.uuidString)])
+    }
+
+    func updateYouthProfile(userId: UUID, body: APIYouthProfileUpdate) async throws -> APIYouthProfileResponse {
+        try await request(method: "PATCH", path: "/youth/me",
+                          body: body, query: [("user_id", userId.uuidString)])
+    }
+
+    // MARK: - Landing Chat
+
+    func landingChat(userId: UUID, message: String? = nil) async throws -> APILandingChatResponse {
+        let body = APILandingChatRequest(user_id: userId, message: message)
+        return try await request(method: "POST", path: "/landing/chat", body: body)
     }
 
     // MARK: - Resources (Admin CRUD — full list)

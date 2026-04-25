@@ -225,6 +225,7 @@ enum MockData {
         avatarImage: nil,
         bio: "喜歡永續議題，希望先在 NGO 累積實務經驗，未來自己創立永續品牌。",
         interests: ["永續設計", "社會企業", "行銷企劃"],
+        skills: [],
         cvFileName: nil,
         path: nil,
         assignedCounselorId: nil

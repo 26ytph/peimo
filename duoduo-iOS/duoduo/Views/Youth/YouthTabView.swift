@@ -2,13 +2,13 @@
 //  YouthTabView.swift
 //  duoduo
 //
-//  民眾端三個 Tab：職涯路徑（首頁）/ 資源探索 / 朵朵樹洞。
+//  民眾端三個 Tab：資源探索 / 職涯路徑 / 朵朵樹洞。
 //
 
 import SwiftUI
 
 struct YouthTabView: View {
-    @State private var tab = 0
+    @State private var tab = 1
 
     init() {
         let appearance = UITabBarAppearance()
@@ -26,11 +26,11 @@ struct YouthTabView: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            CareerPathView()
-                .tabItem { Image(systemName: "cloud.fill"); Text("職涯路徑") }
-                .tag(0)
             ResourceSwipeView()
                 .tabItem { Image(systemName: "rectangle.stack.fill"); Text("資源探索") }
+                .tag(0)
+            CareerPathView()
+                .tabItem { Image(systemName: "cloud.fill"); Text("職涯路徑") }
                 .tag(1)
             ChatHubView()
                 .tabItem { Image(systemName: "bubble.left.and.text.bubble.right.fill"); Text("朵朵樹洞") }
