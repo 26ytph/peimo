@@ -77,40 +77,80 @@
 | 層 | 技術 | 說明 |
 |---|---|---|
 | **iOS 前端** | SwiftUI + `@Observable` | 單一 `AppState` 驅動全畫面，螢幕流程由 enum 控制 |
-| **後端 API** | FastAPI + PostgreSQL | RESTful API，LLM 整合對話式欄位萃取 |
-| **AI 引擎** | GPT + RAG (ChromaDB) | 語意搜尋資源、對話建模、職涯路徑生成 |
-| **部署** | Docker on Cloud | `duoduo-backend.zudo.cc` |
+| **後端 API** | FastAPI + async SQLAlchemy | ~40 個 RESTful endpoints，LLM 整合對話式欄位萃取 |
+| **AI 引擎** | Gemini 2.5 Flash + RAG | 語意搜尋、對話建模、職涯路徑生成、複雜度評估 |
+| **向量搜尋** | ChromaDB + Gemini Embedding | 資源語意匹配，不靠關鍵字 |
+| **資料庫** | PostgreSQL 15 | 15 張表：使用者、資源、互動、聊天、個案管理 |
+| **爬蟲管線** | APScheduler + BeautifulSoup | 每 24 小時自動抓取 6 個台北市青年資源網站 |
+| **部署** | Docker Compose (4 services) | Backend + PostgreSQL + ChromaDB + Crawler |
 
 ```
-┌─────────────┐        ┌──────────────────────────────────┐
-│  iOS App     │  HTTP  │  FastAPI Backend                  │
-│  (SwiftUI)   │ ◄────► │                                  │
-│              │        │  /landing/chat  ── LLM 萃取欄位   │
-│  AppState    │        │  /path/generate ── LLM 職涯生成   │
-│  APIService  │        │  /chat/message  ── RAG 語意回覆   │
-│              │        │  /resources     ── ChromaDB 搜尋  │
-└─────────────┘        └──────────────────────────────────┘
+┌─────────────┐        ┌──────────────────────────────────────────────┐
+│             │        │            duoduo-Server                      │
+│  iOS App    │  HTTP  │                                              │
+│  (SwiftUI)  │ ◄────► │  FastAPI ──┬── /landing/chat  ── LLM 萃取欄位│
+│             │        │           ├── /path/generate ── LLM 職涯生成 │
+│  AppState   │        │           ├── /chat/ai       ── RAG 語意回覆 │
+│  APIService │        │           └── /resources     ── 向量語意搜尋  │
+│             │        │                    │                │        │
+└─────────────┘        │              ┌─────┴─────┐    ┌────┴─────┐  │
+                       │              │PostgreSQL │    │ ChromaDB │  │
+                       │              │ 15 tables │    │ Vectors  │  │
+                       │              └───────────┘    └──────────┘  │
+                       │                                      ▲      │
+                       │  Crawler ── 6 Spiders ── LLM 摘要 ──┘      │
+                       └──────────────────────────────────────────────┘
 ```
+
+### 資料管線
+
+爬蟲每日自動抓取台北市青年資源：
+
+| 來源 | 方式 |
+|---|---|
+| 青年局公告 | Nuxt payload 解析 |
+| 創業台北 | HTML 爬取 |
+| 青年學院課程 | HTML 爬取 |
+| 職涯發展平台 | SPA 靜態內容 |
+| 台北市開放資料 | REST API |
+| 靜態政策資料 | 手動維護 (13 項) |
+
+抓取後經 Gemini LLM 自動摘要、分類標籤，同步寫入 PostgreSQL (結構化) + ChromaDB (向量化)。
 
 ---
 
+## 📁 Repo 結構
+
+```
+peimo/
+├── duoduo-iOS/          # SwiftUI iOS App
+│   └── duoduo.xcodeproj
+├── duoduo-Server/       # FastAPI 後端 + 爬蟲管線
+│   ├── backend/         #   API server (port 8080)
+│   ├── crawler/         #   資料爬取 + LLM 摘要
+│   └── docker-compose.yml
+└── README.md
+```
+
 ## 🚀 快速開始
+
+### 後端 (Docker 一鍵啟動)
+
+```bash
+cd duoduo-Server
+cp .env.example .env          # 填入 GEMINI_API_KEY
+docker-compose up --build
+# API → http://localhost:8080
+# Swagger UI → http://localhost:8080/docs
+```
+
+啟動後自動建立 PostgreSQL + ChromaDB，爬蟲立即抓取第一批資源。
 
 ### iOS App
 
 ```bash
 open duoduo-iOS/duoduo.xcodeproj
 # Xcode → Build & Run (iPhone Simulator)
-```
-
-### Mock Backend（本地開發用）
-
-```bash
-cd mock_backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-# Swagger UI → http://localhost:8000/docs
 ```
 
 ---
