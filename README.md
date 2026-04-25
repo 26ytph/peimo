@@ -1,13 +1,9 @@
-<h1 align="center">☁️ 朵朵 Cloud Hub</h1>
-
-<p align="center">
-  <strong>讓夢想有支撐的雲</strong><br/>
-  一個為迷惘青年打造的 AI 職涯探索平台
+<h1 >朵朵 DuoDuo ☁️</h1>
+<p>
+ AI 個人職涯推薦引擎
 </p>
+![](slides/image.png)
 
-<p align="center">
-  SwiftUI &nbsp;·&nbsp; FastAPI &nbsp;·&nbsp; Gemini 2.5 Flash &nbsp;·&nbsp; ChromaDB &nbsp;·&nbsp; PostgreSQL
-</p>
 
 ---
 
