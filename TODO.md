@@ -60,8 +60,8 @@ LoginView ──→ YouthLandingView ──→ RegisterView ──→ AIIntervie
 ### 後端
 
 - [ ] **`POST /path/generate`** — 目前回傳 500 Internal Server Error，前端已串接但 fallback 到 mock
-- [ ] **`PATCH /youth/me`** — 目前回傳 500，導致註冊資料無法同步，landing/chat 會重複問已填欄位
-- [ ] **`PATCH /users/{id}`** — 目前回傳 500
+- [V] **`PATCH /youth/me`** — 目前回傳 500，導致註冊資料無法同步，landing/chat 會重複問已填欄位
+- [V] **`PATCH /users/{id}`** — 目前回傳 500
 - [ ] **認證/登入** — demo 先用固定 `user_id`
 - [ ] **CV 上傳 + AI 解析** — demo 不做
 

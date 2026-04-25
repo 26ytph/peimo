@@ -63,5 +63,5 @@ AI 處理不了的，朵朵幫你轉介真人諮商師。諮商師有自己的�
 ---
 
 <p align="center">
-  <strong>PEIMO 配磨</strong> — 讓青年不再獨自面對職涯迷霧
+  <strong>DouDou 朵朵</strong> — 讓青年不再獨自面對職涯迷霧
 </p>
