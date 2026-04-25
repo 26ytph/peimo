@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: duoduo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-duoduo_dev}
+      POSTGRES_DB: duoduo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U duoduo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  chromadb:
+    image: chromadb/chroma:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadata:/chroma/chroma
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://duoduo:${POSTGRES_PASSWORD:-duoduo_dev}@postgres:5432/duoduo
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+
+  crawler:
+    build: ./crawler
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+      DATABASE_URL: postgresql+asyncpg://duoduo:${POSTGRES_PASSWORD:-duoduo_dev}@postgres:5432/duoduo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  chromadata:

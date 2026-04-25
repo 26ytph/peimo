@@ -1,7 +1,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/SwiftUI-iOS_17+-blue?logo=swift&logoColor=white" />
-  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white" />
-  <img src="https://img.shields.io/badge/AI_Powered-LLM_+_RAG-blueviolet?logo=openai&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-Python_3.11-009688?logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/Gemini_2.5_Flash-LLM-blueviolet?logo=google&logoColor=white" />
+  <img src="https://img.shields.io/badge/PostgreSQL_15-Database-336791?logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/ChromaDB-Vector_Search-orange?logo=databricks&logoColor=white" />
+  <img src="https://img.shields.io/badge/Docker-Deploy-2496ED?logo=docker&logoColor=white" />
 </p>
 
 <h1 align="center">☁️ 朵朵 Cloud Hub</h1>
