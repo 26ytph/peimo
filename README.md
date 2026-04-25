@@ -1,70 +1,123 @@
-# peimo
+<p align="center">
+  <img src="https://img.shields.io/badge/SwiftUI-iOS_17+-blue?logo=swift&logoColor=white" />
+  <img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white" />
+  <img src="https://img.shields.io/badge/AI_Powered-LLM_+_RAG-blueviolet?logo=openai&logoColor=white" />
+</p>
 
-朵朵 Cloud Hub — 青年職涯諮詢平台
+<h1 align="center">☁️ 朵朵 Cloud Hub</h1>
 
-## Demo User
+<p align="center">
+  <strong>讓夢想有支撐的雲</strong><br/>
+  AI 驅動的青年職涯探索平台 — 用對話取代表單，用理解取代填空
+</p>
 
-固定使用 `user_id`: `ed26c486-80c3-4764-b72c-80e4cb7f8642`（不做驗證）
+<p align="center">
+  <a href="#-核心特色">核心特色</a> · <a href="#-產品流程">產品流程</a> · <a href="#️-技術架構">技術架構</a> · <a href="#-快速開始">快速開始</a>
+</p>
 
-## 民眾 Onboarding 串接流程
+---
+
+## 🧠 為什麼需要朵朵？
+
+> 台灣每年有超過 30 萬名青年在職涯探索階段迷路。政府資源很多，但散落在不同網站、不同格式、不同申請流程裡。問題從來不是「資源不夠」，而是「不知道有什麼適合我」。
+
+**朵朵**不做又一個資源列表。我們讓 AI 先理解你是誰，再幫你找到那些「原來這就是為我設計的」的機會。
+
+---
+
+## ✨ 核心特色
+
+### 🎙️ AI 對話式建模
+
+丟掉冗長的表單。朵朵用自然對話逐步認識你 — 學經歷、興趣、夢想、甚至那些你不確定怎麼說的困境。幾分鐘後，你會看到一份比你自己寫得還準的個人輪廓。
+
+### 🃏 Tinder-style 資源探索
+
+向右滑收藏、向左滑跳過。背後是 RAG 語意搜尋，不靠關鍵字比對，而是真正理解「這個資源適不適合這個人」。
+
+### 🗺️ AI 職涯路徑生成
+
+根據你的 Holland 人格類型、技能、目標，AI 生成一條分階段的職涯藍圖 — 不是「你應該當工程師」的空話，而是每個階段該做什麼、可以用什麼資源。
+
+### 💬 朵朵樹洞
+
+隨時和 AI 聊天問問題、整理思緒，或在準備好之後，配對真人諮商師深度諮詢。
+
+### 👩‍⚕️ 諮商師工作台
+
+專業諮商師可以管理個案、標記追蹤標籤、直接推薦資源給青年 — 數位化的個案管理，不再靠 Excel。
+
+---
+
+## 🔄 產品流程
 
 ```
-LoginView ──→ YouthLandingView ──→ RegisterView ──→ AIInterviewView ──→ AnalysisResultView
-   (1)             (2)                 (3)              (4)                   (5)
-     ──→ PathGeneratingView ──→ YouthTabView
-              (6)                  (7)
+  ┌─────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+  │  登入選擇 │ ──→ │ 基本資料   │ ──→ │ AI 對話   │ ──→ │ 個人輪廓   │
+  │  身份角色 │     │ + CV 上傳  │     │ 逐步建模   │     │ 確認 / 編輯│
+  └─────────┘     └──────────┘     └──────────┘     └──────────┘
+                                                          │
+                  ┌──────────────────────────────────────┘
+                  ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │                    ☁️ 朵朵主畫面                          │
+  │                                                          │
+  │   📋 資源探索        🗺️ 職涯路徑        💬 朵朵樹洞      │
+  │   滑卡收藏資源       AI 生成藍圖        AI 聊天 / 諮商師  │
+  └──────────────────────────────────────────────────────────┘
 ```
 
-### 各步驟 API 對應
+---
 
-| 步驟 | 畫面 | 說明 | API | 狀態 |
-|------|------|------|-----|------|
-| 1 | LoginView | 選擇身份 | — | ✅ |
-| 2 | YouthLandingView | 歡迎頁 | — | ✅ |
-| 3 | RegisterView | 填寫基本資料；上傳 CV 填入固定資料 | — | ✅ |
-| 4 | AIInterviewView | 動態問答，後端根據 missing_fields 決定下一題，直到 completed=true | `POST /landing/chat` | ✅ 已串接 |
-| 5 | AnalysisResultView | 顯示 AI 使用者建模（Holland、目標、成就、困境、技能、bio），使用者可編輯後確認 | `PATCH /youth/me` | ✅ 已串接 |
-| 6 | PathGeneratingView | 分析動畫 → 生成職涯路徑 | `POST /path/generate` | ✅ 已串接（目前後端 500，fallback 到 mock） |
-| 7 | YouthTabView | 進入主 App（Tab：資源探索 → **職涯路徑**（預設）→ 朵朵樹洞） | — | ✅ |
+## 🏗️ 技術架構
 
-### `/landing/chat` 流程
+| 層 | 技術 | 說明 |
+|---|---|---|
+| **iOS 前端** | SwiftUI + `@Observable` | 單一 `AppState` 驅動全畫面，螢幕流程由 enum 控制 |
+| **後端 API** | FastAPI + PostgreSQL | RESTful API，LLM 整合對話式欄位萃取 |
+| **AI 引擎** | GPT + RAG (ChromaDB) | 語意搜尋資源、對話建模、職涯路徑生成 |
+| **部署** | Docker on Cloud | `duoduo-backend.zudo.cc` |
 
-1. 初始呼叫（帶 RegisterView 已填的基本資訊）→ 後端回傳 `missing_fields` + `next_question`
-2. 使用者回答 → 後端萃取欄位（`extracted_fields`）→ 更新 `profile_data` → 回傳下一題
-3. 重複直到 `completed: true`，此時回傳 `generated_bio` + 完整 `profile_data`
-4. 後端自動將萃取結果存入 youth profile
+```
+┌─────────────┐        ┌──────────────────────────────────┐
+│  iOS App     │  HTTP  │  FastAPI Backend                  │
+│  (SwiftUI)   │ ◄────► │                                  │
+│              │        │  /landing/chat  ── LLM 萃取欄位   │
+│  AppState    │        │  /path/generate ── LLM 職涯生成   │
+│  APIService  │        │  /chat/message  ── RAG 語意回覆   │
+│              │        │  /resources     ── ChromaDB 搜尋  │
+└─────────────┘        └──────────────────────────────────┘
+```
 
-### 進入主 App 後的 API
+---
 
-| 功能 | API | 狀態 |
-|------|-----|------|
-| 資源卡片瀏覽 | `GET /resources/browse` | ⬜ TODO |
-| 資源語意搜尋 | `GET /resources?query=&n=` | ⬜ TODO |
-| 滑卡 like/pass | `POST /resources/{id}/swipe` | ⬜ TODO |
-| 已收藏資源 | `GET /resources/liked?user_id=` | ⬜ TODO |
-| 資源申請 | `POST /resources/{id}/apply` | ⬜ TODO |
-| AI 聊天 | `POST /chat/message` | ⬜ TODO |
-| 諮商師列表 | `GET /counselors` | ⬜ TODO |
-| 申請配對諮商師 | `POST /counselors/{id}/apply` | ⬜ TODO |
-| 諮商師聊天 | `POST /chat/counselor` | ⬜ TODO |
+## 🚀 快速開始
 
-## 已串接 API 總覽
+### iOS App
 
-| API | 用途 | 使用位置 |
-|-----|------|---------|
-| `POST /landing/chat` | 動態問答 + 萃取使用者輪廓 | `AIInterviewView` |
-| `PATCH /youth/me?user_id=` | 使用者確認後儲存完整 profile | `AppState.confirmAnalysisResult()` |
-| `GET /youth/me?user_id=` | 取得使用者 profile | `APIService`（備用） |
-| `POST /path/generate` | 生成職涯路徑（目前後端 500） | `AppState.confirmAnalysisResult()` |
+```bash
+open duoduo-iOS/duoduo.xcodeproj
+# Xcode → Build & Run (iPhone Simulator)
+```
 
-## TODO
+### Mock Backend（本地開發用）
 
-### 後端
+```bash
+cd mock_backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+# Swagger UI → http://localhost:8000/docs
+```
 
-- [ ] **`POST /path/generate`** — 目前回傳 500 Internal Server Error，前端已串接但 fallback 到 mock
-- [ ] **認證/登入** — demo 先用固定 `user_id`
-- [ ] **CV 上傳 + AI 解析** — demo 不做
+---
 
-### 前端
+## 👥 團隊
 
-- [ ] 主 App 內所有資源/聊天/諮商師功能從 mock 切換到 APIService
+**PEIMO 配磨** — 讓青年不再獨自面對職涯迷霧
+
+---
+
+<p align="center">
+  <sub>Built with ☁️ and a lot of empathy.</sub>
+</p>
