@@ -120,6 +120,7 @@ async def update_user(user_id: uuid.UUID, req: UserUpdate, db: AsyncSession = De
         await db.flush()
     except IntegrityError:
         raise HTTPException(status_code=409, detail="Account or email already exists")
+    await db.refresh(user)
     return user
 
 

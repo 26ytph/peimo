@@ -16,12 +16,6 @@ embedding_fn = GoogleGenerativeAiEmbeddingFunction(
 
 client = chromadb.HttpClient(host=settings.CHROMA_HOST, port=settings.CHROMA_PORT)
 
-try:
-    client.delete_collection(name="taipei_resources")
-    logger.info("已刪除舊的 taipei_resources collection（embedding 衝突）")
-except Exception:
-    pass
-
 collection = client.get_or_create_collection(
     name="taipei_resources",
     metadata={"hnsw:space": "cosine"},
@@ -36,16 +30,26 @@ async def query_resources(query: str, n_results: int = 5) -> list[dict]:
     documents = results.get("documents", [[]])[0]
     metadatas = results.get("metadatas", [[]])[0]
 
-    return [
-        {
+    import json as _json
+
+    items = []
+    for doc, meta in zip(documents, metadatas):
+        important_info_raw = meta.get("important_info", "[]")
+        try:
+            important_info = _json.loads(important_info_raw) if isinstance(important_info_raw, str) else important_info_raw
+        except (_json.JSONDecodeError, TypeError):
+            important_info = []
+        items.append({
+            "resource_id": meta.get("resource_id", ""),
             "content": doc,
             "source": meta.get("source", ""),
             "url": meta.get("url", ""),
             "title": meta.get("title", ""),
+            "category": meta.get("category", "其他"),
             "tags": meta.get("tags", ""),
-        }
-        for doc, meta in zip(documents, metadatas)
-    ]
+            "important_info": important_info,
+        })
+    return items
 
 
 async def add_documents(docs: list[dict]) -> None:

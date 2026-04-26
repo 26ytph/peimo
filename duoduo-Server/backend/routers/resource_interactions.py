@@ -20,7 +20,9 @@ class ResourceCardResponse(BaseModel):
     id: uuid.UUID
     title: str
     content: str
+    category: str | None
     tags: list | None
+    important_info: list | None
     source: str | None
     url: str | None
     created_at: datetime
@@ -52,13 +54,9 @@ async def _get_citizen_profile(user_id: uuid.UUID, db: AsyncSession) -> CitizenP
 
 @router.get("/resources/browse", response_model=list[ResourceCardResponse], summary="瀏覽資源卡片")
 async def browse_resources(
-    tag: Optional[str] = Query(None, description="依標籤篩選"),
     db: AsyncSession = Depends(get_db),
 ):
-    stmt = select(Resource)
-    if tag:
-        stmt = stmt.where(Resource.tags.contains([tag]))
-    stmt = stmt.order_by(Resource.created_at.desc())
+    stmt = select(Resource).order_by(Resource.created_at.desc())
     result = await db.execute(stmt)
     return result.scalars().all()
 

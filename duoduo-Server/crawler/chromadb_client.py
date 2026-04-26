@@ -1,4 +1,5 @@
 # ChromaDB 客戶端：crawler 獨立的 ChromaDB 連線與寫入邏輯
+import json
 import logging
 import os
 
@@ -18,13 +19,6 @@ embedding_fn = GoogleGenerativeAiEmbeddingFunction(
 
 client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
 
-# 若舊 collection 的 embedding function 與新的不同，先刪除再重建
-try:
-    client.delete_collection(name="taipei_resources")
-    logger.info("已刪除舊的 taipei_resources collection（embedding 衝突）")
-except Exception:
-    pass
-
 collection = client.get_or_create_collection(
     name="taipei_resources",
     metadata={"hnsw:space": "cosine"},
@@ -37,14 +31,17 @@ def add_documents(docs: list[dict]) -> None:
     if not docs:
         return
 
-    ids = [f"{doc.get('source', 'unknown')}_{i}" for i, doc in enumerate(docs)]
+    ids = [doc.get("id", f"{doc.get('source', 'unknown')}_{i}") for i, doc in enumerate(docs)]
     documents = [doc["content"] for doc in docs]
     metadatas = [
         {
+            "resource_id": doc.get("id", ""),
             "source": doc.get("source", ""),
             "url": doc.get("url", ""),
             "title": doc.get("title", ""),
+            "category": doc.get("category", "其他"),
             "tags": doc.get("tags", ""),
+            "important_info": json.dumps(doc.get("important_info", []), ensure_ascii=False),
         }
         for doc in docs
     ]

@@ -18,12 +18,26 @@ ENRICH_PROMPT = """\
 請以 JSON 格式回覆，不要附加任何其他文字：
 {{
   "title": "簡潔的標題（20字以內）",
-  "summary": "一段描述這筆資料核心內容的摘要（100-200字），要保留關鍵資訊如日期、費用、報名方式等",
-  "tags": ["標籤1", "標籤2", "標籤3"]
+  "summary": "一段精簡摘要（50-100字），只寫這筆資料是什麼、對誰有用，細節放 important_info",
+  "category": "從下方分類中選擇最符合的一個主要分類",
+  "tags": ["標籤1", "標籤2"],
+  "important_info": ["重要資訊1", "重要資訊2"]
 }}
 
-標籤請從以下類別中選擇（可多選）：
-創業, 就業, 職涯, 培訓課程, 補助, 貸款, 實習, 志工, 國際交流, 市集, 諮詢輔導, 政策公告, 活動, 青年住宅, 心理健康, 其他
+## category（必填，僅選一個最主要的分類）：
+補助, 貸款, 課程, 競賽, 實習, 就業, 創業, 活動, 場地, 諮詢, 住宅, 國際交流, 其他
+
+## tags 規則（嚴格限制）：
+- 最多只能給 2 個標籤，不要超過
+- 標籤應描述資料的具體特徵，不要與 category 重複
+- 例如：「青年」「職涯」「免費」「線上」「台北市」等
+- 不要把所有沾得上邊的標籤都加上去，只保留最核心的
+
+## important_info 規則：
+- 列出這筆資料中使用者最需要知道的關鍵資訊
+- 例如：截止日期、補助金額、時薪、申請資格、地點、可重複申請（每季/每年）等
+- 每條資訊簡短扼要，不超過 30 字
+- 最多 5 條
 """
 
 
@@ -43,7 +57,7 @@ def enrich_single(model, raw_content: str) -> dict | None:
         prompt = ENRICH_PROMPT.format(raw_content=raw_content[:1500])
         response = model.generate_content(
             prompt,
-            request_options={"timeout": 30},
+            request_options={"timeout": 60},
         )
         text = response.text.strip()
         if text.startswith("```"):
@@ -73,7 +87,10 @@ def enrich_documents(docs: list[dict]) -> list[dict]:
         if result:
             doc["title"] = result.get("title", doc.get("title", ""))
             doc["content"] = result.get("summary", raw_content)
-            doc["tags"] = ",".join(result.get("tags", []))
+            doc["category"] = result.get("category", "其他")
+            tags = result.get("tags", [])
+            doc["tags"] = ",".join(tags[:2])
+            doc["important_info"] = result.get("important_info", [])
             success += 1
         enriched.append(doc)
 

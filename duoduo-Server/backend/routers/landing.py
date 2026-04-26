@@ -27,8 +27,6 @@ REQUIRED_PROFILE_FIELDS = [
     "achievement",
     "setback",
     "interests",
-    "holland_primary",
-    "holland_secondary",
 ]
 
 class LandingChatRequest(BaseModel):
@@ -132,6 +130,7 @@ def _profile_snapshot(user: User, profile: CitizenProfile) -> dict:
         "holland_primary": profile.holland_primary,
         "holland_secondary": profile.holland_secondary,
         "bio": profile.bio,
+        "prefer_resources": profile.prefer_resources,
     }
 
 
@@ -145,16 +144,32 @@ def _select_target_field(
     extracted_fields: dict,
     asked_rounds: dict[str, int],
     last_asked_field: str | None,
+    last_answer_sufficient: bool = True,
 ) -> tuple[str | None, int]:
-    # 只有上一輪目標欄位在本輪有被回答時，才進入第 2 輪追問，避免跳題。
-    if last_asked_field and last_asked_field in extracted_fields:
+    # 只有上一輪目標欄位被回答，且 LLM 判斷答案不足夠時，才進入追問。
+    if (
+        last_asked_field
+        and last_asked_field in extracted_fields
+        and not last_answer_sufficient
+    ):
         rounds = asked_rounds.get(last_asked_field, 0)
         if rounds < FOLLOWUP_MAX_ROUNDS:
             return last_asked_field, rounds + 1
 
     if missing_fields:
+        # 跳過偵測：使用者回答了其他欄位但完全跳過 last_asked_field → 暫時問下一欄
+        if (
+            last_asked_field
+            and last_asked_field in missing_fields
+            and extracted_fields                          # 有回答到某些東西
+            and last_asked_field not in extracted_fields  # 但沒回答被問的欄位
+        ):
+            for field in missing_fields:
+                if field != last_asked_field:
+                    return field, 1  # 跳過後重問，永遠用第一輪語氣
+
         field = missing_fields[0]
-        return field, asked_rounds.get(field, 0) + 1
+        return field, 1  # 新目標欄位永遠用第一輪語氣；追問只由第一個 if 負責
 
     return None, 0
 
@@ -232,6 +247,9 @@ async def landing_chat(req: LandingChatRequest, db: AsyncSession = Depends(get_d
         for field, raw_value in parsed.items():
             if field not in REQUIRED_PROFILE_FIELDS:
                 continue
+            # 已有值的欄位不覆寫，避免後續對話誤改先前答案
+            if not _is_missing(getattr(profile, field, None)):
+                continue
             value = _normalize_update(field, raw_value)
             if _is_missing(value):
                 continue
@@ -242,11 +260,23 @@ async def landing_chat(req: LandingChatRequest, db: AsyncSession = Depends(get_d
 
     missing_after = _missing_fields(profile)
     profile_data = _profile_snapshot(user, profile)
+
+    # 讓 LLM 判斷上一輪的回答是否已足夠，決定要不要追問
+    last_answer_sufficient = True
+    if req.message and last_asked_field and last_asked_field in extracted_fields:
+        try:
+            last_answer_sufficient = await llm.check_answer_sufficient(
+                last_asked_field, req.message
+            )
+        except Exception:
+            last_answer_sufficient = True  # 失敗時預設不追問
+
     target_field, round_no = _select_target_field(
         missing_after,
         extracted_fields,
         asked_rounds,
         last_asked_field,
+        last_answer_sufficient,
     )
 
     if not target_field:
@@ -261,6 +291,12 @@ async def landing_chat(req: LandingChatRequest, db: AsyncSession = Depends(get_d
                 )
 
             profile.bio = generated_bio
+
+            try:
+                profile.prefer_resources = await llm.generate_prefer_resources(profile_data)
+            except Exception:
+                profile.prefer_resources = profile.goal or ""
+
             await db.flush()
 
         return LandingChatResponse(

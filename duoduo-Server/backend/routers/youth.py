@@ -178,6 +178,8 @@ async def update_youth_me(
         setattr(profile, field, value)
 
     await db.flush()
+    await db.refresh(profile)
+    await db.refresh(user)
     return _to_response(user, profile)
 
 

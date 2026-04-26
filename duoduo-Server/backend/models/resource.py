@@ -17,7 +17,9 @@ class Resource(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str | None] = mapped_column(String(50), nullable=True, default="其他")
     tags: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    important_info: Mapped[list | None] = mapped_column(JSON, nullable=True)
     source: Mapped[str | None] = mapped_column(String(255), nullable=True, default="")
     url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 

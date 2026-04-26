@@ -8,10 +8,13 @@ router = APIRouter(prefix="/resources", tags=["resources"])
 
 
 class ResourceItem(BaseModel):
+    resource_id: str = ""
     content: str
     source: str
     url: str
+    category: str = "其他"
     tags: str
+    important_info: list[str] = []
     title: str
 
 

@@ -36,16 +36,26 @@ def upsert_resources(docs: list[dict]) -> int:
     conn = _get_conn()
     try:
         with conn.cursor() as cur:
+            seen = set()
             values = []
             for doc in docs:
+                key = (doc.get("title", ""), doc.get("source", ""))
+                if key in seen:
+                    continue
+                seen.add(key)
                 tags = doc.get("tags")
                 if isinstance(tags, str):
                     tags = [t.strip() for t in tags.split(",") if t.strip()]
+                important_info = doc.get("important_info")
+                if isinstance(important_info, str):
+                    important_info = [important_info]
                 values.append((
-                    str(uuid.uuid4()),
+                    doc.get("id", str(uuid.uuid4())),
                     doc.get("title", ""),
                     doc.get("content", ""),
+                    doc.get("category", "其他"),
                     json.dumps(tags, ensure_ascii=False) if tags else None,
+                    json.dumps(important_info, ensure_ascii=False) if important_info else None,
                     doc.get("source", ""),
                     doc.get("url", ""),
                 ))
@@ -53,16 +63,18 @@ def upsert_resources(docs: list[dict]) -> int:
             execute_values(
                 cur,
                 """
-                INSERT INTO resources (id, title, content, tags, source, url)
+                INSERT INTO resources (id, title, content, category, tags, important_info, source, url)
                 VALUES %s
                 ON CONFLICT (title, source) DO UPDATE SET
                     content = EXCLUDED.content,
+                    category = EXCLUDED.category,
                     tags = EXCLUDED.tags,
+                    important_info = EXCLUDED.important_info,
                     url = EXCLUDED.url,
                     updated_at = NOW()
                 """,
                 values,
-                template="(%s::uuid, %s, %s, %s::jsonb, %s, %s)",
+                template="(%s::uuid, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s)",
             )
             conn.commit()
             count = len(values)

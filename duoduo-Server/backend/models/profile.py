@@ -24,10 +24,11 @@ class CitizenProfile(Base):
     achievement: Mapped[str | None] = mapped_column(Text, nullable=True)
     setback: Mapped[str | None] = mapped_column(Text, nullable=True)
     interests: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    holland_primary: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    holland_secondary: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    holland_primary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    holland_secondary: Mapped[str | None] = mapped_column(Text, nullable=True)
     counselor_list: Mapped[list | None] = mapped_column(JSON, nullable=True)
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prefer_resources: Mapped[str | None] = mapped_column(String(200), nullable=True)  # 偏好資源搜尋關鍵字
     career_path: Mapped[list | None] = mapped_column(JSON, nullable=True)  # LLM 生成的職涯階段
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

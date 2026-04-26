@@ -52,6 +52,8 @@ async def bootstrap_users_schema() -> None:
         await conn.execute(text("ALTER TABLE citizen_profiles ADD COLUMN IF NOT EXISTS achievement TEXT"))
         await conn.execute(text("ALTER TABLE citizen_profiles ADD COLUMN IF NOT EXISTS setback TEXT"))
         await conn.execute(text("ALTER TABLE citizen_profiles ADD COLUMN IF NOT EXISTS counselor_list JSON"))
+        await conn.execute(text("ALTER TABLE citizen_profiles ALTER COLUMN holland_primary TYPE TEXT"))
+        await conn.execute(text("ALTER TABLE citizen_profiles ALTER COLUMN holland_secondary TYPE TEXT"))
 
 
 @asynccontextmanager

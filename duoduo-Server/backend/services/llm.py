@@ -78,6 +78,19 @@ PROFILE_BIO_PROMPT = """\
 {profile_json}
 """
 
+PREFER_RESOURCES_PROMPT = """\
+你是資料分析助手。根據以下青年檔案，產生一段簡短的資源偏好搜尋關鍵字。
+
+規則：
+1. 根據青年的目標、技能、興趣、科系等，推測他最可能需要哪類資源。
+2. 輸出一段簡短的搜尋用關鍵字（不超過 50 字），用來做語意搜尋。
+3. 只輸出關鍵字文字，不要 JSON、不要引號、不要額外說明。
+4. 範例：「創業補助 行銷課程 青年貸款」「前端實習 職涯諮詢 程式培訓」
+
+青年資料(JSON)：
+{profile_json}
+"""
+
 LANDING_FIELD_FALLBACK_QUESTION = {
     "age": "你今年幾歲？",
     "location": "你目前主要活動地點在哪裡？",
@@ -107,6 +120,18 @@ LANDING_FIELD_KEYWORDS = {
     "holland_primary": ["何倫", "首要"],
     "holland_secondary": ["何倫", "次要"],
 }
+
+ANSWER_SUFFICIENCY_PROMPT = """\
+你是資料完整性判斷助手。根據「欄位名稱」和「使用者的回答」，判斷這個回答是否已足夠填入該欄位，不需要再追問。
+
+規則：
+1. 只回傳 JSON，不附加任何文字：{{"sufficient": true}} 或 {{"sufficient": false}}
+2. 若回答中已清楚提及該欄位的具體內容（即使只有一句話），視為 sufficient=true
+3. 若回答完全模糊（如「還好」「不知道」「隨便」）或完全沒提到欄位內容，視為 sufficient=false
+
+欄位：{field}
+使用者回答：{answer}
+"""
 
 LANDING_QUESTION_PROMPT = """\
 你是「朵朵 DuoDuo」的 Landing 問答引導員。你的任務不是填表，而是像真人一樣追問，幫助蒐集更完整、可用來描寫青年經歷的資訊。
@@ -269,6 +294,33 @@ async def generate_landing_question(
         "next_question": next_question,
         "why": str(data.get("why", "")).strip(),
     }
+
+
+async def check_answer_sufficient(field: str, answer: str) -> bool:
+    """讓 LLM 判斷使用者對某欄位的回答是否已足夠，不需再追問。"""
+    if not answer.strip():
+        return False
+    prompt = ANSWER_SUFFICIENCY_PROMPT.format(field=field, answer=answer)
+    try:
+        response = await model.generate_content_async(
+            [{"role": "user", "parts": [prompt]}]
+        )
+        data = _safe_json_loads(response.text)
+        return bool(data.get("sufficient", False))
+    except Exception:
+        return True  # 判斷失敗時預設不追問，避免困擾使用者
+
+
+async def generate_prefer_resources(profile_data: dict) -> str:
+    """依青年檔案生成資源偏好搜尋關鍵字。"""
+    prompt = PREFER_RESOURCES_PROMPT.format(
+        profile_json=json.dumps(profile_data, ensure_ascii=False)
+    )
+    response = await model.generate_content_async(
+        [{"role": "user", "parts": [prompt]}]
+    )
+    text = response.text.strip()
+    return text[:200]
 
 
 async def generate_profile_bio(profile_data: dict) -> str:
