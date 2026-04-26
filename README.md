@@ -6,7 +6,8 @@
 團隊：第 11 隊「哎你個碼」
 
 ## 30 秒看懂這個專案
-[demo影片](slides/key.png)
+[demo影片](demo.mp4)
+![](slides/key.png)
 <!-- <img src="slides/key.png" alt="30 秒看懂這個專案" width="150" style="display:block; margin-left:0; margin-right:auto;" /> -->
 我們做了一個遊戲化互動式AI 職涯導航APP給迷惘的青年使用，
 解決履歷無法呈現個人潛力、資源難以精準媒合的問題。
