@@ -36,15 +36,16 @@ LoginView ──→ YouthLandingView ──→ RegisterView ──→ AIIntervie
 
 | 功能 | API | 狀態 |
 |------|-----|------|
-| 資源卡片瀏覽 | `GET /resources/browse` | ⬜ TODO |
+| 資源卡片瀏覽 | `GET /resources/browse` | ✅ 已串接 |
 | 資源語意搜尋 | `GET /resources?query=&n=` | ⬜ TODO |
-| 滑卡 like/pass | `POST /resources/{id}/swipe` | ⬜ TODO |
-| 已收藏資源 | `GET /resources/liked?user_id=` | ⬜ TODO |
-| 資源申請 | `POST /resources/{id}/apply` | ⬜ TODO |
-| AI 聊天 | `POST /chat/message` | ⬜ TODO |
+| 滑卡 like/pass | `POST /resources/{id}/swipe` | ✅ 已串接 |
+| 已收藏資源 | `GET /resources/liked?user_id=` | ✅ 已串接 |
+| 資源申請 | `POST /resources/{id}/apply` | ✅ 已串接 |
+| 資源確認 | `POST /resources/{id}/confirm` | ✅ 已串接 |
+| AI 聊天 | `GET /chat/ai` · `POST /chat/ai` | ✅ 已串接（回覆仍用 mock） |
 | 諮商師列表 | `GET /counselors` | ⬜ TODO |
 | 申請配對諮商師 | `POST /counselors/{id}/apply` | ⬜ TODO |
-| 諮商師聊天 | `POST /chat/counselor` | ⬜ TODO |
+| 諮商師聊天 | `GET /chat/counselor` · `POST /chat/counselor` | ✅ 已串接（回覆仍用 mock） |
 
 ## 已串接 API 總覽
 
@@ -54,6 +55,13 @@ LoginView ──→ YouthLandingView ──→ RegisterView ──→ AIIntervie
 | `PATCH /youth/me?user_id=` | 使用者確認後儲存完整 profile | `AppState.confirmAnalysisResult()` |
 | `GET /youth/me?user_id=` | 取得使用者 profile | `APIService`（備用） |
 | `POST /path/generate` | 生成職涯路徑（目前後端 500） | `AppState.confirmAnalysisResult()` |
+| `GET /resources/browse` | 瀏覽資源卡片 | `AppState.loadResources()` |
+| `GET /resources/liked` | 取得已收藏資源 | `AppState.loadLikedResources()` |
+| `POST /resources/{id}/swipe` | 滑卡 like/pass | `AppState.swipe()` |
+| `POST /resources/{id}/apply` | 資源申請 | `AppState.applyResource()` |
+| `POST /resources/{id}/confirm` | 資源確認 | `APIService`（已串接） |
+| `GET /chat/ai` · `POST /chat/ai` | AI 聊天 | `AppState.sendChat()` |
+| `GET /chat/counselor` · `POST /chat/counselor` | 諮商師聊天 | `AppState.sendChat()` |
 
 ## TODO
 
@@ -67,4 +75,8 @@ LoginView ──→ YouthLandingView ──→ RegisterView ──→ AIIntervie
 
 ### 前端
 
-- [ ] 主 App 內所有資源/聊天/諮商師功能從 mock 切換到 APIService
+- [V] 資源瀏覽、滑卡、申請 — 已串接後端 API
+- [V] AI 聊天、諮商師聊天 — 已串接（但 AI 回覆仍 fallback 到 mock reply）
+- [ ] AI 聊天回覆改用後端 `APIChatMessage.message` 而非 `fakeAIReply`
+- [ ] 諮商師列表 / 配對功能從 mock 切換到 API
+- [ ] 資源語意搜尋 (`GET /resources?query=`) 串接

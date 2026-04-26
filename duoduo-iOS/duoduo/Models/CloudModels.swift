@@ -56,6 +56,19 @@ enum ResourceCategory: String, Codable, CaseIterable, Identifiable {
         case .overseas:    return Color(red: 0.56, green: 0.48, blue: 0.78)
         }
     }
+
+    /// 從後端 category 字串對應到本地 enum
+    static func from(apiCategory: String?) -> ResourceCategory {
+        guard let cat = apiCategory else { return .course }
+        switch cat {
+        case "職缺", "實習", "就業":          return .jobIntern
+        case "課程", "活動", "培訓課程":       return .course
+        case "競賽", "計劃", "補助":           return .competition
+        case "創業", "貸款":                   return .startup
+        case "國際交流":                       return .overseas
+        default:                               return .course
+        }
+    }
 }
 
 // MARK: - 資源卡片
@@ -70,16 +83,17 @@ struct ResourceCard: Identifiable, Codable, Hashable {
     var amount: String?
     var location: String?
     var tags: [String]
+    var importantInfo: [String]
     var url: String?
 
     init(id: UUID = UUID(), title: String, organization: String,
          category: ResourceCategory, summary: String, description: String,
          deadline: String? = nil, amount: String? = nil, location: String? = nil,
-         tags: [String] = [], url: String? = nil) {
+         tags: [String] = [], importantInfo: [String] = [], url: String? = nil) {
         self.id = id; self.title = title; self.organization = organization
         self.category = category; self.summary = summary; self.description = description
         self.deadline = deadline; self.amount = amount; self.location = location
-        self.tags = tags; self.url = url
+        self.tags = tags; self.importantInfo = importantInfo; self.url = url
     }
 }
 

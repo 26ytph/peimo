@@ -319,8 +319,7 @@ final class AppState {
         do {
             let cardResponses = try await APIService.shared.browseResources()
             let cards = cardResponses.map { resp -> ResourceCard in
-                // 將 APIResourceCardResponse 轉換為 ResourceCard
-                let category = ResourceCategory.jobIntern  // 預設分類，後端若有 category 欄位則改用
+                let category = ResourceCategory.from(apiCategory: resp.category)
                 return ResourceCard(
                     id: resp.id,
                     title: resp.title,
@@ -329,6 +328,7 @@ final class AppState {
                     summary: String(resp.content.prefix(50)) + "...",
                     description: resp.content,
                     tags: resp.tags ?? [],
+                    importantInfo: resp.important_info ?? [],
                     url: resp.url
                 )
             }

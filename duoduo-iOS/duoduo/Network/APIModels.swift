@@ -174,7 +174,9 @@ struct APIResourceCardResponse: Decodable, Identifiable {
     let id: UUID
     let title: String
     let content: String
+    let category: String?
     let tags: [String]?
+    let important_info: [String]?
     let source: String?
     let url: String?
     let created_at: String

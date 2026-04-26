@@ -13,10 +13,6 @@ struct ResourceCardView: View {
     /// 外層已提供背景時設為 true，避免雙層白底
     var bare: Bool = false
 
-    private var topTags: [String] {
-        Array(card.tags.prefix(2))
-    }
-
     var body: some View {
         if compact {
             compactBody
@@ -27,30 +23,18 @@ struct ResourceCardView: View {
 
     // MARK: - 滑卡（Full）
     private var fullBody: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // 左上角 tag（取後端前兩個）+ 主辦
+        VStack(alignment: .leading, spacing: 14) {
+            // 左上角 category + 主辦
             HStack {
-                if topTags.isEmpty {
-                    HStack(spacing: 6) {
-                        Image(systemName: card.category.icon)
-                            .font(.caption2.bold())
-                        Text(card.category.rawValue)
-                            .font(.caption2.bold())
-                    }
-                    .foregroundStyle(card.category.solidColor)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Capsule().fill(card.category.tintColor))
-                } else {
-                    HStack(spacing: 8) {
-                        ForEach(Array(topTags.enumerated()), id: \.offset) { idx, tag in
-                            Text("#\(tag)")
-                                .font(.caption2.bold())
-                                .foregroundStyle(topTagTextColor(at: idx))
-                                .padding(.horizontal, 10).padding(.vertical, 5)
-                                .background(Capsule().fill(topTagBackgroundColor(at: idx)))
-                        }
-                    }
+                HStack(spacing: 6) {
+                    Image(systemName: card.category.icon)
+                        .font(.caption2.bold())
+                    Text(card.category.rawValue)
+                        .font(.caption2.bold())
                 }
+                .foregroundStyle(card.category.solidColor)
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(Capsule().fill(card.category.tintColor))
 
                 Spacer()
 
@@ -72,28 +56,28 @@ struct ResourceCardView: View {
                 .foregroundStyle(CloudTheme.textSecondary)
                 .lineSpacing(3)
 
-            if !card.description.isEmpty {
-                Text(card.description)
-                    .font(.footnote)
-                    .foregroundStyle(CloudTheme.textSecondary.opacity(0.8))
-                    .lineSpacing(2)
-                    .lineLimit(3)
-            }
-
-            // Meta 資訊（橫排膠囊）
-            HStack(spacing: 8) {
-                if let d = card.deadline { metaPill(icon: "calendar", text: d) }
-                if let a = card.amount   { metaPill(icon: "yensign.circle", text: a) }
-            }
-
-            if let l = card.location {
-                HStack(spacing: 4) {
-                    Image(systemName: "mappin")
-                        .font(.caption2)
-                    Text(l)
-                        .font(.caption2)
+            // 重��資訊
+            if !card.importantInfo.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(card.importantInfo, id: \.self) { info in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(card.category.solidColor)
+                                .padding(.top, 1)
+                            Text(info)
+                                .font(.caption)
+                                .foregroundStyle(CloudTheme.textPrimary)
+                                .lineLimit(2)
+                        }
+                    }
                 }
-                .foregroundStyle(CloudTheme.textMuted)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(card.category.tintColor.opacity(0.5))
+                )
             }
 
             // Tags
@@ -108,6 +92,25 @@ struct ResourceCardView: View {
             }
 
             Spacer(minLength: 0)
+
+            // 連結
+            if let urlString = card.url, let url = URL(string: urlString) {
+                Link(destination: url) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.caption)
+                        Text("查看原始資訊")
+                            .font(.caption)
+                    }
+                    .foregroundStyle(card.category.solidColor)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(card.category.solidColor.opacity(0.3), lineWidth: 1)
+                    )
+                }
+            }
         }
         .padding(22)
         .background(
@@ -116,16 +119,6 @@ struct ResourceCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(color: Color.black.opacity(0.06), radius: 14, y: 6)
         .shadow(color: CloudTheme.softShadow, radius: 4, y: 2)
-    }
-
-    private func topTagTextColor(at index: Int) -> Color {
-        index == 0 ? Color(red: 0.10, green: 0.40, blue: 0.72)
-                   : Color(red: 0.58, green: 0.22, blue: 0.10)
-    }
-
-    private func topTagBackgroundColor(at index: Int) -> Color {
-        index == 0 ? Color(red: 0.86, green: 0.93, blue: 1.00)
-                   : Color(red: 1.00, green: 0.92, blue: 0.84)
     }
 
     private func metaPill(icon: String, text: String) -> some View {
