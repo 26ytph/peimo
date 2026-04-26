@@ -1,13 +1,13 @@
 <h1 >朵朵 DuoDuo ☁️</h1>
-<p>AI 個人職涯推薦引擎</p>
 
 ![](slides/image.png)
 
-賽題分類：賽題 B · 行穩台北
+賽題分類：賽題 B · 行穩台北<br>
 團隊：第 11 隊「哎你個碼」
 
 30 秒看懂這個專案
-<!-- ![](slides/key.png) -->
+![](slides/key.png)
+<!-- <img src="slides/key.png" alt="30 秒看懂這個專案" width="150" style="display:block; margin-left:0; margin-right:auto;" /> -->
 我們做了一個遊戲化互動式AI 職涯導航APP給迷惘的青年使用，
 解決履歷無法呈現個人潛力、資源難以精準媒合的問題。
 
