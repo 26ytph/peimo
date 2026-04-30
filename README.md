@@ -1,3 +1,10 @@
+> 🥉 **2026 YTP 黑客松 — 青年組 第 3 名 銅牌**
+>
+> 作品：**朵朵 DuoDuo（AI 個人職涯推薦引擎）**
+> 主辦方公開展示版 ｜ 完整得獎名單見 [26ytph organization](https://github.com/orgs/26ytph/repositories)
+
+---
+
 <h1 >朵朵 DuoDuo ☁️</h1>
 
 ![](slides/image.png)
